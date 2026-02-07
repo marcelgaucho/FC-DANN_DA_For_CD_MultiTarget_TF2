@@ -1,6 +1,14 @@
+# %% Import Libraries
+
 import os
 
-home = os.getenv("HOME")
+# %% Define HOME
+
+home = os.getcwd()
+home = home + '/../..' # Home is parent dir from the workspace directory
+
+# %% Other parameters
+
 Dataset_MAIN_PATH = str(home)+"/workspace/dataset/"
 METHOD = "DeepLab"
 
