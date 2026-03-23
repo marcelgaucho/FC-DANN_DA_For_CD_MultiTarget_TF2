@@ -7,6 +7,7 @@ from skimage.morphology import square, disk
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import SharedParameters
 
+from Tools import mask_creation
 from Tools import *
 
 class AMAZON_PA():
@@ -216,4 +217,4 @@ class AMAZON_PA():
         self.images_norm_.append(np.pad(self.images_norm[0], self.pad_tuple, mode='symmetric'))
         self.images_norm_.append(np.pad(self.images_norm[1], self.pad_tuple, mode='symmetric'))
 
-        print(np.shape(self.images_norm))
+        print(np.shape(self.images_norm_))

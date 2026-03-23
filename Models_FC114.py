@@ -1,3 +1,4 @@
+from osgeo import gdal
 import os
 import sys
 import skimage
@@ -26,16 +27,20 @@ from flip_gradient import flip_gradient
 
 class Models():
     def __init__(self, args, dataset_s, dataset_t):
+        # Disable Tensorflow 2 behavior (Eager Execution)
         tf.compat.v1.disable_v2_behavior()
-        #Changing  the seed  in any run
+        
+        # Create new graph and set seed to random (time related)
         tf.compat.v1.reset_default_graph()
         tf.compat.v1.set_random_seed(int(time.time()))
         
+        # Variables used in object
         self.args = args
         self.dataset_s = dataset_s
         self.dataset_t = dataset_t
-        self.loss_dr_threshold = 1.
-
+        self.loss_dr_threshold = 1. # loss threshold for domain regressor
+        
+        # Set number of domains
         if self.args.discriminate_domain_targets:
             self.loss_dr_threshold = 1.5
             if self.args.phase == PHASE_TRAIN:
@@ -152,6 +157,7 @@ class Models():
             #Defining losses
             # Classifier loss, only for the source labeled samples
             temp_loss = self.weighted_cross_entropy_c(self.label_c, self.prediction_c, self.class_weights)
+            
             # Essa mask_c deixa de fora os pixels que eu não me importo. A rede vai gerar um resultado, mas eu não nao me importo com essas saidas
             self.classifier_loss =  tf.reduce_sum(self.mask_c * temp_loss) / tf.reduce_sum(self.mask_c)
 
@@ -214,7 +220,7 @@ class Models():
         return lr
 
     def Train(self):
-
+        # Best metric values to store
         best_val_fs = 0
         best_val_dr = 0
         best_val_dr_acc = 1
@@ -223,45 +229,57 @@ class Models():
         #best_f1score = 0
         pat = 0
         
+        # Default class weights to use in loss
         class_weights = []
         class_weights.append(0.4)
         class_weights.append(2)
 
+        # Reference lists of source
         reference_t1_s = []
         reference_t2_s = []
 
+        # Initialize lists of references of source with zero arrays on reference shape
         for s in self.dataset_s:
             reference_t1_s.append(np.zeros((s.references_[0].shape[0], s.references_[0].shape[1], 1)))
             reference_t2_s.append(np.zeros((s.references_[0].shape[0], s.references_[0].shape[1], 1)))
         
+        # Reference lists of target
         reference_t1_t = []
         reference_t2_t = []
 
+        # Initialize lists of references of target with zero arrays on reference shape
         for t in self.dataset_t:
             reference_t1_t.append(np.zeros((t.references_[0].shape[0], t.references_[0].shape[1], 1)))
             reference_t2_t.append(np.zeros((t.references_[0].shape[0], t.references_[0].shape[1], 1)))
 
+        # If parameter is True, uses the positive percentage calculated as loss weights
         if self.args.balanced_tr:
             class_weights = self.dataset_s.class_weights
 
+        # Corner coordinates list from Source
         corners_coordinates_tr_s = []
         corners_coordinates_vl_s = []
 
-        # Copy the original input values
+        # Copy values from object
         for index, s in enumerate(self.dataset_s):
+            # Copy source corners coordinates from object and append it to another list
             corners_coordinates_tr_s.append(s.corners_coordinates_tr.copy())
             corners_coordinates_vl_s.append(s.corners_coordinates_vl.copy())
 
+            # First swap 0s and 1s in reference T1 
             reference_t1_ = s.references_[0].copy()
             reference_t1_[s.references_[0] == 0] = 1
             reference_t1_[s.references_[0] == 1] = 0
 
+            # Then copy reference arrays to initialized lists
             reference_t1_s[index][:,:,0] = reference_t1_.copy()
             reference_t2_s[index][:,:,0] = s.references_[1].copy()
 
+        # Corner coordinates list from Target
         corners_coordinates_tr_t = []
         corners_coordinates_vl_t = []
 
+        # Execute if it is Domain Adaptation
         if self.args.training_type == TRAINING_TYPE_DOMAIN_ADAPTATION:
             for t in self.dataset_t:
                 corners_coordinates_tr_t.append(t.corners_coordinates_tr.copy())
@@ -289,6 +307,7 @@ class Models():
                 print(np.shape(corners_coordinates_vl_t[i]))
             print('******************************')
         
+        # Do data augmentation definition
         if self.args.data_augmentation:
             print('Sets dimensions after data augmentation')
             print('Source dimensions: ')
@@ -299,6 +318,7 @@ class Models():
                 print(np.shape(corners_coordinates_tr_s[i]))
                 print(np.shape(corners_coordinates_vl_s[i]))
 
+            # Do data augmentation definition in target domain if it is domain adaptation
             print('Target dimensions: ')
             if self.args.training_type == TRAINING_TYPE_DOMAIN_ADAPTATION:
                 for i in range(len(self.dataset_t)):
@@ -307,6 +327,7 @@ class Models():
                     print(np.shape(corners_coordinates_tr_t[i]))
                     print(np.shape(corners_coordinates_vl_t[i]))
 
+        # If it is domain adaptation, generate target labels
         if self.args.training_type == TRAINING_TYPE_DOMAIN_ADAPTATION and 'DR' in self.args.da_type:
             #Generating target labels before data shuffling and balancing            
             # Target Domain labels configuration
@@ -500,21 +521,24 @@ class Models():
             y_train_d = np.concatenate((source_labels_tr, target_labels_tr), axis = 0)
             y_valid_d = np.concatenate((source_labels_vl, target_labels_vl), axis = 0)
         
-        # Training configuration
+        # Training configuration for Classification
         elif self.args.training_type == TRAINING_TYPE_CLASSIFICATION:
-            
+            # Create data variable and fill it with all images and references concatenaned in an unique array
             data = []
             for i in range(len(self.dataset_s)):
                 x_train_s = np.concatenate((self.dataset_s[i].images_norm_[0], self.dataset_s[i].images_norm_[1], reference_t1_s[i], reference_t2_s[i]), axis = 2)
                 data.append(x_train_s)
             
-            # Domain indexs configuration
+            # Initialize corner coordinates lists
             corners_coordinates_tr = []
             corners_coordinates_vl = []
 
+            # Initialize domain indexes lists
             domain_indexs_tr = []
             domain_indexs_vl = []
 
+            # Fill Domain_indexes lists with column array of source_label_value 
+            # with length of corner coordinates
             source_label_value = 0
             for i in range(len(self.dataset_s)):
                 corners_coordinates_tr.append(corners_coordinates_tr_s[i].copy())
@@ -531,26 +555,31 @@ class Models():
             domain_indexs_tr = np.concatenate(domain_indexs_tr,axis=0)
             domain_indexs_vl = np.concatenate(domain_indexs_vl,axis=0)
             
-        #Computing the number of batches
+        # Computing the number of batches
         num_batches_tr = corners_coordinates_tr.shape[0]//self.args.batch_size
         num_batches_vl = corners_coordinates_vl.shape[0]//self.args.batch_size      
 
         print(f'Num samples for training: {corners_coordinates_tr.shape[0]}')
         print(f'Num samples for validation: {corners_coordinates_vl.shape[0]}')   
             
+        # Append (another time in classification case) array to data list 
         data.append(x_train_s) 
 
-        #Training starts now:
-        e = 0
-        best_model_epoch = -1
+        # Start training
+        e = 0 # Current epoch
+        best_model_epoch = -1 # Best model epoch
         while (e < self.args.epochs):
-            #Shuffling the data and the labels
-            num_samples = corners_coordinates_tr.shape[0]
+            # Shuffle train data and labels
+            num_samples = corners_coordinates_tr.shape[0] # Number of train patches
             index = np.arange(num_samples)
-            np.random.shuffle(index)
+            seed_value = 42
+            rng = np.random.default_rng(seed=seed_value)
+            rng.shuffle(index)
+            # np.random.shuffle(index)
             corners_coordinates_tr = corners_coordinates_tr[index, :]
             domain_indexs_tr = domain_indexs_tr[index, :]
 
+            # Execute if it is domain adaptation
             if self.args.training_type == TRAINING_TYPE_DOMAIN_ADAPTATION:
                 if 'DR' in self.args.da_type:
                     if len(self.D_out_shape) > 2:
@@ -558,13 +587,16 @@ class Models():
                     else:
                         y_train_d = y_train_d[index, :]
 
-            #Shuffling the data and the labels for validation samples
-            num_samples = corners_coordinates_vl.shape[0]
+            # Shuffle validation data and labels
+            num_samples = corners_coordinates_vl.shape[0] # Number of valid patches
             index = np.arange(num_samples)
-            np.random.shuffle(index)
+            rng = np.random.default_rng(seed=seed_value)
+            rng.shuffle(index)
+            # np.random.shuffle(index)
             corners_coordinates_vl = corners_coordinates_vl[index, :]
             domain_indexs_vl = domain_indexs_vl[index, :]
 
+            # Execute if it is Domain Adaptation
             if self.args.training_type == TRAINING_TYPE_DOMAIN_ADAPTATION:
                 if 'DR' in self.args.da_type:
                     if len(self.D_out_shape) > 2:
@@ -572,9 +604,9 @@ class Models():
                     else:
                         y_valid_d = y_valid_d[index, :]
 
-            # Open a file in order to save the training history
-            with open(os.path.join(self.args.save_checkpoint_path,"Log.txt"),"a") as f:
-                #Initializing loss metrics
+            # Save training history in a file
+            with open(os.path.join(self.args.save_checkpoint_path, "Log.txt"), "a") as f:
+                # Initializing loss and metrics
                 loss_cl_tr = np.zeros((1 , 2))
                 loss_cl_vl = np.zeros((1 , 2))
                 loss_dr_tr = np.zeros((1 , 2))
@@ -641,7 +673,7 @@ class Models():
                     Weights[:,:,:,1] = class_weights[1] * Weights[:,:,:,1]
 
                     if self.args.training_type == TRAINING_TYPE_CLASSIFICATION:
-                        _, c_batch_loss, batch_probs  = self.sess.run([self.training_optimizer, self.total_loss, self.prediction_c],
+                        _, c_batch_loss, batch_probs = self.sess.run([self.training_optimizer, self.total_loss, self.prediction_c],
                                                                 feed_dict={self.data: data_batch, self.label_c: y_train_c_hot_batch,
                                                                            self.mask_c: classification_mask_batch, self.class_weights: Weights, self.learning_rate: self.lr})
                     elif self.args.training_type == TRAINING_TYPE_DOMAIN_ADAPTATION:
