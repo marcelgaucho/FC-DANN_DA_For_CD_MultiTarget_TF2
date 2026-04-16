@@ -10,7 +10,8 @@ home = home + '/../..' # Home is parent dir from the workspace directory
 # %% Other parameters
 
 Dataset_MAIN_PATH = str(home)+"/workspace/dataset/"
-METHOD = "DeepLab"
+# METHOD = "DeepLab"
+METHOD = "Unet"
 
 Train_MAIN_COMMAND = "Main_Train_FC114.py"
 Test_MAIN_COMMAND = "Main_Test_FC114.py"

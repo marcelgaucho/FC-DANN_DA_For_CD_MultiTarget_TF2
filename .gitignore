@@ -2,6 +2,7 @@
 *.pyc
 tests.ipynb
 results/
+results0/
 Results/results_20230324/bkp/Metrics_Multi_Target_Ts_RO_Eval_MA_8.png
 Results/results_20230324/bkp/Metrics_Multi_Target_Ts_RO_Eval_PA_6.png
 Results/results_20230324/Metrics_Multi_Target_Ts_MA_Eval_MA_1.png

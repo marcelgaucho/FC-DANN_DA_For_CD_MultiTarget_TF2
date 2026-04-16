@@ -1,6 +1,7 @@
 # %% Import Libraries
 
 import os
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
 import sys
 import warnings
 import argparse
@@ -19,7 +20,7 @@ print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 gpus = tf.config.list_physical_devices('GPU')
 
 memory_limit = 20480
-num_threads = 1
+#num_threads = 5
 
 if gpus:
     print(f"Limiting memory on first GPU to {memory_limit} MB")
@@ -27,9 +28,9 @@ if gpus:
             gpus[0],
             [tf.config.LogicalDeviceConfiguration(memory_limit=memory_limit)])
 
-print("Limiting number of threads to: ", num_threads) 
-tf.config.threading.set_inter_op_parallelism_threads(num_threads)
-tf.config.threading.set_intra_op_parallelism_threads(num_threads)
+#print("Limiting number of threads to: ", num_threads) 
+#tf.config.threading.set_inter_op_parallelism_threads(num_threads)
+#tf.config.threading.set_intra_op_parallelism_threads(num_threads)
 
     
 # %% Create parser with function
@@ -148,7 +149,7 @@ def main(argv=None):
                                     "--batch_size " + SharedParameters.TRAINING_BATCH_SIZE + " "
                                     "--lr " + SharedParameters.LR + " "
                                     "--beta1 0.9 "
-                                    "--data_augmentation True "                                                              
+                                    "--data_augmentation False "                                                              
                                     "--fixed_tiles True "
                                     "--defined_before False "
                                     "--image_channels 7 "

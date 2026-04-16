@@ -89,7 +89,7 @@ def parse_args(args=None):
     #parser.add_argument('--change_every_epoch', dest='change_every_epoch', type=eval, choices=[True, False], default=False, help='Decide if the target set will be change every epoch in order to balance the training')
     
     # Early stop parameter
-    parser.add_argument('--patience', dest='patience', type=int, default=10, help='number of epochs without improvement to apply early stop')
+    parser.add_argument('--patience', dest='patience', type=int, default=2, help='number of epochs without improvement to apply early stop')
     parser.add_argument('--warmup', dest='warmup', type=int, default=1, help='number of epochs without backpropagation of discriminator gradients')
     
     # Checkpoint dir
@@ -207,6 +207,7 @@ def main(argv=None):
         dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
         print(dt_string)
         if args.training_type == TRAINING_TYPE_CLASSIFICATION:
+            #args.save_checkpoint_path = os.path.join(args.checkpoint_dir, args.classifier_type)
             args.save_checkpoint_path = os.path.join(args.checkpoint_dir, args.classifier_type + '_' + dt_string)
         elif args.training_type == TRAINING_TYPE_DOMAIN_ADAPTATION:
             args.save_checkpoint_path = os.path.join(args.checkpoint_dir, 'Tr_M_' + dt_string)

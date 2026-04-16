@@ -1,5 +1,5 @@
 # %% Import libraries
-
+#import pdb
 import os
 import sys
 import json
@@ -78,8 +78,14 @@ def main(argv=None):
     # System argv is used if argv isn't specified
     if argv is None:
         argv = sys.argv
-        
+    
+    # Parse args
     args = parse_args(args=argv[1:])
+    
+    # Print args
+    print("Module name: ", __name__)
+    print("Args: ")
+    print(json.dumps(vars(args), indent=4), end='\n\n')
 
     if args.phase == SharedParameters.PHASE_TEST:
         print(args)
@@ -126,6 +132,7 @@ def main(argv=None):
 
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
+            #pdb.set_trace()		
             args.save_results_dir = os.path.join(args.results_dir, args.classifier_type + '_' + 'Model_Results_' + 'Trained_' + model_folder_fields[3] + '_' + model_folder_fields[4] + '_' + model_folder[-19:] + '_Tested_' + args.data_t1_year + '_' + args.data_t2_year + '_' + dt_string)
             
             print(f'Testing checkpoint {model_folder} at {dt_string}')            

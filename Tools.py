@@ -122,8 +122,8 @@ def compute_audit_mask(true_labels, predicted_labels, high_uncertainty_mask):
     return audit_pred
 
 def Data_Augmentation_Definition(corners_coordinates):
-    num_sample = np.size(corners_coordinates , 0)
-    data_cols = np.size(corners_coordinates , 1)    
+    num_sample = np.size(corners_coordinates , 0) # number of patches
+    data_cols = np.size(corners_coordinates , 1) # number of patches coordinates
     
     corners_coordinates_augmented = np.zeros((3 * num_sample, data_cols + 1))
     
@@ -164,11 +164,11 @@ def Data_Augmentation_Execution(data, transformation_indexs):
         if transformation_index == 0:
             data_transformed[s, :, :, :] = data_x_0
         if transformation_index == 1:
-            data_transformed[s, :, :, :] = np.rot90(data_x_0)
+            data_transformed[s, :, :, :] = np.rot90(data_x_0) # Rotation 90 degrees
         if transformation_index == 2:
-            data_transformed[s, :, :, :] = np.flip(data_x_0, 0)
+            data_transformed[s, :, :, :] = np.flip(data_x_0, 0) # Vertical Flip
         if transformation_index == 3:
-            data_transformed[s, :, :, :] = np.flip(data_x_0, 1)        
+            data_transformed[s, :, :, :] = np.flip(data_x_0, 1) # Horizontal Flip       
     return data_transformed   
 
 def Patch_Extraction(data, corners_coordinates, domain_index, patch_size):
@@ -176,7 +176,7 @@ def Patch_Extraction(data, corners_coordinates, domain_index, patch_size):
     data_rows = np.size(data[0], 0)
     data_cols = np.size(data[0], 1)
     data_depth = np.size(data[0], 2)
-    num_samp = np.size(corners_coordinates , 0)    
+    num_samp = np.size(corners_coordinates, 0)    
     
     patches_cointainer = np.zeros((num_samp, patch_size, patch_size, data_depth),dtype=np.float32)
         
@@ -206,9 +206,9 @@ def mask_creation(mask_row, mask_col, num_patch_row, num_patch_col, Train_tiles,
     counter = 1
     for i in range(0, mask_row, patch_dim_row): 
         for j in range(0 , mask_col, patch_dim_col):           
-            train = np.size(np.where(Train_tiles == counter),1)
-            valid = np.size(np.where(Valid_tiles == counter),1)
-            undesired = np.size(np.where(Undesired_tiles == counter), 1)
+            train = int(counter in Train_tiles)
+            valid = int(counter in Valid_tiles)
+            undesired = int(counter in Undesired_tiles)
             if train == 1:
                 mask_array[i : i + patch_dim_row, j : j + patch_dim_col] = train_mask
                 if counter_r == num_patch_row:
