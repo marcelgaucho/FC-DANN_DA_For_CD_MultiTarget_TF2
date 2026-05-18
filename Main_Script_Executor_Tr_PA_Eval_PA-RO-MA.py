@@ -6,6 +6,7 @@ import sys
 import warnings
 import argparse
 import json
+
 from Amazonia_Legal_RO import AMAZON_RO
 from Amazonia_Legal_PA import AMAZON_PA
 from Cerrado_Biome_MA import CERRADO_MA
